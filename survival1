@@ -1737,22 +1737,7 @@ let registeredUsers=[];
 
 function checkLogin(){
   const s=localStorage.getItem('vx24_user');
-  if(s){
-    try{
-      currentUser=JSON.parse(s);
-      // 캐시가 있으면 서버에서 최신 프로필 다시 불러오기 (혈액형/접종 최신화)
-      sbReq('GET','profiles?tag=eq.'+encodeURIComponent(currentUser.tag)+'&select=*')
-        .then(r=>{
-          if(r&&r.length>0){
-            currentUser=r[0];
-            localStorage.setItem('vx24_user',JSON.stringify(currentUser));
-          }
-          afterLogin();
-        })
-        .catch(()=>afterLogin()); // 오프라인 등 오류 시 캐시로 진행
-      return;
-    }catch(e){}
-  }
+  if(s){try{currentUser=JSON.parse(s);afterLogin();return}catch(e){}}
   $('login-screen').classList.add('show');
 }
 
@@ -1811,17 +1796,6 @@ function afterLogin(){
   $('pass-name').textContent=currentUser.name;
   $('pass-tag').textContent='@'+currentUser.tag;
   if($('wauth'))$('wauth').value=currentUser.name;
-
-  // ★ 혈액형 / 접종 여부 표시
-  const blood=currentUser.blood_type||currentUser.blood||'';
-  const vacc=currentUser.vaccinated||currentUser.vacc||'';
-  if($('pv-blood')) $('pv-blood').textContent=blood||'—';
-  if($('pv-vacc'))  $('pv-vacc').textContent=vacc||'미확인';
-
-  // 미설정 시 의료정보 등록 패널 표시
-  const setup=$('prof-vacc-setup');
-  if(setup) setup.style.display=(!blood&&!vacc)?'block':'none';
-
   loadNotes();
   connectRealtime();
   startBoardPoll();
@@ -1837,24 +1811,6 @@ function afterLogin(){
   setInterval(refreshInfectionCount, 120000);
   startAutoLoop();
   loadMissionsFromDB();
-}
-
-async function saveMedicalInfo(){
-  const blood=$('prof-blood-sel').value;
-  const vacc=$('prof-vacc-sel').value;
-  if(!blood||!vacc){showToast('혈액형과 접종 여부를 모두 선택하세요');return}
-  if(!currentUser){showToast('로그인 필요');return}
-  try{
-    await sbReq('PATCH','profiles?tag=eq.'+encodeURIComponent(currentUser.tag),{blood_type:blood,vaccinated:vacc});
-    currentUser.blood_type=blood;
-    currentUser.vaccinated=vacc;
-    localStorage.setItem('vx24_user',JSON.stringify(currentUser));
-    if($('pv-blood')) $('pv-blood').textContent=blood;
-    if($('pv-vacc'))  $('pv-vacc').textContent=vacc;
-    const setup=$('prof-vacc-setup');
-    if(setup) setup.style.display='none';
-    showToast('의료 정보 등록 완료 ✓');
-  }catch(e){showToast('저장 오류: '+(e.message||''));console.error(e)}
 }
 
 async function loadRegisteredUsers(){
