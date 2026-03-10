@@ -1419,11 +1419,176 @@ input[type=range].radio-range::-moz-range-thumb{
 </div>
 
 <script>
-<script>
   // loadTrades가 선언되기 전에 버튼이 눌리거나 afterLogin에서 호출돼도 크래시 방지
   window.loadTrades = window.loadTrades || function () {
     console.warn('[guard] loadTrades called before definition; ignored.');
   };
+
+// ============================================================
+// TRADE (물자 교환소)
+// ============================================================
+let robTargetId = null;
+let tradePollInterval = null;
+
+async function loadTrades() {
+  const wrap = $('trade-list');
+  if (!wrap) return;
+  wrap.innerHTML = '<div style="padding:20px;text-align:center;font-family:var(--m);font-size:10px;color:var(--txf)">로딩 중...</div>';
+  try {
+    const data = await sbReq('GET', 'trades?order=created_at.desc&limit=50', null);
+    if (!data || data.length === 0) {
+      wrap.innerHTML = '<div style="padding:20px;text-align:center;font-family:var(--m);font-size:10px;color:var(--txf)">등록된 거래가 없습니다.</div>';
+      return;
+    }
+    wrap.innerHTML = data.map(t => renderTradeCard(t)).join('');
+  } catch(e) {
+    wrap.innerHTML = '<div style="padding:20px;text-align:center;font-family:var(--m);font-size:10px;color:var(--acl)">로드 실패: ' + (e.message || '오류') + '</div>';
+  }
+}
+
+function startTradePoll() {
+  if (tradePollInterval) return;
+  loadTrades();
+  tradePollInterval = setInterval(loadTrades, 12000);
+}
+
+function stopTradePoll() {
+  if (tradePollInterval) { clearInterval(tradePollInterval); tradePollInterval = null; }
+}
+
+function renderTradeCard(t) {
+  const isMe = currentUser && t.author_tag === currentUser.tag;
+  const isDone = t.status === 'accepted' || t.status === 'robbed';
+  const statusBadge = t.status === 'accepted'
+    ? '<span class="trade-accepted-badge">✓ 거래완료</span>'
+    : t.status === 'robbed'
+    ? '<span class="trade-robbed-badge">⚔ 강탈됨</span>'
+    : '';
+  const actions = isDone ? statusBadge : (isMe
+    ? `<button class="trade-cancel-btn" onclick="cancelTrade('${t.id}')">취소</button>`
+    : `<button class="trade-accept-btn" onclick="acceptTrade('${t.id}')">✓ 수락</button><button class="trade-rob-btn" onclick="robTrade('${t.id}','${(t.author_name||'').replace(/'/g,"\\'")}')">⚔ 강탈</button>`);
+  const note = t.note ? `<div class="trade-note">${t.note}</div>` : '';
+  const timeStr = t.created_at ? formatTs(t.created_at) : '';
+  return `<div class="trade-card ${isDone ? (t.status==='accepted'?'accepted':'robbed') : ''} ${isMe ? 'mine' : ''}">
+    <div class="trade-row">
+      <div class="trade-offer">${escH(t.offer||'')}</div>
+      <div class="trade-arrow">⇄</div>
+      <div class="trade-want">${escH(t.want||'')}</div>
+    </div>
+    ${note}
+    <div class="trade-meta">
+      <span style="color:var(--acl)">${escH(t.author_name||'')} <span style="color:var(--txf)">@${escH(t.author_tag||'')}</span></span>
+      <span>${timeStr}</span>
+    </div>
+    <div class="trade-actions" style="margin-top:6px">${actions}</div>
+  </div>`;
+}
+
+async function submitTrade() {
+  if (!currentUser) { showToast('로그인 필요'); return; }
+  const offer = ($('tr-offer').value || '').trim();
+  const want  = ($('tr-want').value  || '').trim();
+  const note  = ($('tr-note').value  || '').trim();
+  if (!offer || !want) { showToast('제공/원하는 아이템 모두 입력'); return; }
+  try {
+    await sbReq('POST', 'trades', {
+      offer, want, note,
+      author_name: currentUser.name,
+      author_tag:  currentUser.tag,
+      status: 'open'
+    });
+    closeMo('mo-trade-write');
+    $('tr-offer').value = '';
+    $('tr-want').value  = '';
+    $('tr-note').value  = '';
+    showToast('거래 등록 완료');
+    loadTrades();
+  } catch(e) {
+    showToast('등록 실패: ' + (e.message || '오류'));
+  }
+}
+
+async function acceptTrade(id) {
+  if (!currentUser) { showToast('로그인 필요'); return; }
+  try {
+    await sbReq('PATCH', `trades?id=eq.${id}`, { status: 'accepted', accepted_by: currentUser.tag });
+    showToast('거래 수락!');
+    loadTrades();
+  } catch(e) { showToast('실패: ' + (e.message||'오류')); }
+}
+
+async function cancelTrade(id) {
+  if (!currentUser) return;
+  try {
+    await sbReq('DELETE', `trades?id=eq.${id}&author_tag=eq.${currentUser.tag}`, null);
+    showToast('거래 취소됨');
+    loadTrades();
+  } catch(e) { showToast('취소 실패: ' + (e.message||'오류')); }
+}
+
+function robTrade(id, defenderName) {
+  if (!currentUser) { showToast('로그인 필요'); return; }
+  robTargetId = id;
+  $('rob-attacker-label').textContent = currentUser.name || currentUser.tag;
+  $('rob-defender-label').textContent = defenderName || '상대';
+  $('rob-atk-val').textContent = '?';
+  $('rob-def-val').textContent = '?';
+  $('rob-result').textContent = '';
+  $('rob-result').className = 'rob-result';
+  $('rob-roll-btn').style.display = '';
+  $('rob-close-btn').style.display = 'none';
+  $('rob-duel').classList.add('show');
+}
+
+function closeRobDuel() {
+  $('rob-duel').classList.remove('show');
+  robTargetId = null;
+}
+
+async function rollRobDice() {
+  const atkEl = $('rob-atk-val');
+  const defEl = $('rob-def-val');
+  const resEl = $('rob-result');
+  $('rob-roll-btn').disabled = true;
+  let t = 0;
+  const anim = setInterval(() => {
+    atkEl.textContent = Math.ceil(Math.random() * 20);
+    defEl.textContent = Math.ceil(Math.random() * 20);
+    atkEl.classList.add('rolling');
+    defEl.classList.add('rolling');
+    t++;
+    if (t > 15) {
+      clearInterval(anim);
+      atkEl.classList.remove('rolling');
+      defEl.classList.remove('rolling');
+      const atk = Math.ceil(Math.random() * 20);
+      const def = Math.ceil(Math.random() * 20);
+      atkEl.textContent = atk;
+      defEl.textContent = def;
+      if (atk > def) {
+        atkEl.classList.add('win'); defEl.classList.add('lose');
+        resEl.textContent = '강탈 성공!'; resEl.classList.add('win');
+        if (robTargetId) {
+          sbReq('PATCH', `trades?id=eq.${robTargetId}`, { status: 'robbed', robbed_by: currentUser ? currentUser.tag : '' })
+            .then(() => { loadTrades(); })
+            .catch(() => {});
+        }
+      } else if (def > atk) {
+        defEl.classList.add('win'); atkEl.classList.add('lose');
+        resEl.textContent = '강탈 실패...'; resEl.classList.add('lose');
+      } else {
+        resEl.textContent = '무승부 — 재시도';
+      }
+      $('rob-roll-btn').style.display = 'none';
+      $('rob-close-btn').style.display = '';
+      $('rob-roll-btn').disabled = false;
+    }
+  }, 60);
+}
+
+function escH(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
 
   // (원래 있던 코드가 여기서부터 이어짐)
   // ============================================================
@@ -2807,173 +2972,7 @@ document.addEventListener('DOMContentLoaded',function(){
   masterPg.appendChild(div);
 });
 
-async function refreshInfectionCount(){try{const _d=await sbReq('GET','profiles?quarantine_count=gte.1&select=quarantine_count');if(!_d)return;const _q=_d.filter(p=>(p.quarantine_count||0)>=3).length;const _s=_d.length;const _lm=DISASTER_MSGS[DISASTER_MSGS.length-1];if(_lm)_lm.body='오늘 기준 VX-24 감염 현황입니다.\n\n확진(의심): '+_s+'명\n격리 처리: '+_q+'명\n\nD구역 봉쇄선 유지 중. 전국 위기경보 수준 [심각] 유지.\n\n생존자 여러분의 협조를 당부드립니다.\n─ 전국재난안전대책본부';}catch(e){}} // 감염자수 갱신: afterLogin에서 호출  // 쪽지/재난문자 수신 시 핸드폰 진동+소리 const _origLoadNotes=typeof loadNotes==='function'?loadNotes:null;  // ============================================================ // AUTO EMERGENCY // ============================================================ setTimeout(()=>{(function em(){const es=[{a:'⚠ ALPHA-1 ⚠',m:'D구역 변이체',s:'대피소 폐쇄'},{a:'⚠ 봉쇄선 ⚠',m:'B구역 침투',s:'현 위치 대기'},{a:'⚠ 비상 ⚠',m:'식수 변경',s:'350ml'}];const e=es[Math.floor(Math.random()*es.length)];$('ea').textContent=e.a;$('em').textContent=e.m;$('es').textContent=e.s;$('emg').classList.add('show');playS('alert');setTimeout(em,90000+Math.random()*90000)})()},45000+Math.random()*30000);  // ============================================================ // 고급 구현 #1: 감염 HUD 애니메이션 // ============================================================ function animateHUD(){   let target=0;   const steps=INF_ST;   let si=0;   setInterval(()=>{     si=(si+1)%steps.length;     target=steps[si].pct;     $('hud-inf').style.width=target+'%';     $('hud-inf-val').textContent=target+'%';     $('hud-inf').style.background=target>70?'var(--acl)':target>40?'var(--org)':'var(--ylw)';   },8000); }  // ============================================================ // 고급 구현 #3: 글리치 효과 (주기적 화면 결함) // ============================================================ (function glitchEffect(){   setInterval(()=>{     if(Math.random()>.85){       const els=document.querySelectorAll('.topbar-t,.ctit,.dpt');       if(els.length){         const el=els[Math.floor(Math.random()*els.length)];         el.style.cssText='transform:translateX(2px);filter:hue-rotate(90deg)';         setTimeout(()=>el.style.cssText='',80);         setTimeout(()=>{el.style.cssText='transform:translateX(-2px)';setTimeout(()=>el.style.cssText='',80)},120);       }     }   },3000); })();  // ============================================================ // 물자 교환소 // ============================================================ // ============================================================ // 인벤토리 헬퍼 — 아이템 이름 파싱 & 자동 이전 // ============================================================ const ITEM_MAP={   '생수':  {i:'💧'},'물':{i:'💧'},   '즉석밥':{i:'🍚'},'밥':{i:'🍚'},   '건빵':  {i:'🍪'},'과자':{i:'🍪'},   '의료킷':{i:'🩹'},'의약품':{i:'🩹'},'약':{i:'🩹'},   '건전지':{i:'🔋'},'배터리':{i:'🔋'},   '마스크':{i:'😷'},   '라면':  {i:'🍜'},   '칼':    {i:'🔪'},'나이프':{i:'🔪'},   '랜턴':  {i:'🔦'},'손전등':{i:'🔦'},   '통조림':{i:'🥫'},   '로프':  {i:'🪢'},'줄':{i:'🪢'}, }; function parseItemName(str){   // "생수 2개", "건전지 1개", "마스크" 등에서 이름/수량 파싱   str=str.trim();   const qm=str.match(/([x×]|\s)(\d+)(개|병|개씩)?$/);   let q=1, name=str;   if(qm){q=parseInt(qm[2]);name=str.slice(0,str.length-qm[0].length).trim();}   else{const nm=str.match(/^(.+?)\s+(\d+)(개|병)?$/);if(nm){name=nm[1].trim();q=parseInt(nm[2]);}}   const icon=(ITEM_MAP[name]||{}).i||'📦';   return{name,q,icon}; } function removeFromInv(name,q){   const inv=getInv();   const ex=inv.find(x=>x.n===name);   if(!ex)return false;   ex.q-=q;   if(ex.q<=0){const idx=inv.indexOf(ex);inv.splice(idx,1);}   localStorage.setItem('vx24_inv',JSON.stringify(inv));   return true; } function hasInvItem(name){   return getInv().some(x=>x.n===name&&x.q>0); }  // ============================================================ // 거래소 // ============================================================ async function loadTrades(){   const list=$('trade-list');   if(!list)return;   try{     const data=await sbReq('GET','trades?order=created_at.desc&limit=50');     if(!data||!data.length){       list.innerHTML='<div style="text-align:center;color:var(--txf);font-family:var(--m);font-size:10px;padding:24px">등록된 거래가 없습니다</div>';       return;     }     list.innerHTML=data.map(t=>renderTradeCard(t)).join('');   }catch(e){     list.innerHTML='<div style="color:var(--acl);font-family:var(--m);font-size:10px;padding:12px">불러오기 실패</div>';   } }  function renderTradeCard(t){   const isMine=currentUser&&(t.from_tag===currentUser.tag);   const status=t.status||'open';   const ts=t.created_at?formatTs(t.created_at):'';    let statusBadge='';   let actionBtns='';    if(status==='accepted'){     statusBadge=`<span class="trade-accepted-badge">✓ 거래완료</span>`;   } else if(status==='robbed'){     statusBadge=`<span class="trade-robbed-badge">⚠ 강탈됨</span>`;   } else if(status==='expired'){     statusBadge=`<span style="font-family:var(--m);font-size:9px;color:var(--txf);padding:3px 8px;border:1px solid rgba(255,255,255,.1)">⏱ 만료</span>`;   } else if(status==='open'){     if(isMine){       actionBtns=`<button class="trade-cancel-btn" onclick="cancelTrade('${t.id}')">취소</button>`;     } else if(currentUser){       // 수락 버튼 — 항상 표시       actionBtns=`<div class="trade-actions">         <button class="trade-accept-btn" onclick="acceptTrade('${t.id}','${t.from_tag}','${(t.offer||'').replace(/'/g,"\'")}','${(t.want||'').replace(/'/g,"\'")}')">✓ 수락</button> <button class="trade-rob-btn" onclick="attemptRob('${t.id}','${t.from_tag}','${(t.offer||'').replace(/'/g,"\'")}')">강탈</button> </div>`; } } return`<div class="trade-card${isMine?' mine':''}${status==='accepted'?' accepted':''}${status==='robbed'?' robbed':''}" id="trade-${t.id}"> <div class="trade-row"> <div class="trade-offer">📦 ${t.offer}</div> <div class="trade-arrow">⇄</div> <div class="trade-want">🔍 ${t.want}</div> </div> ${t.note?`<div class="trade-note">"${t.note}"</div>`:''} <div class="trade-meta"> <span style="color:var(--txf)">${t.from_name} · ${ts}</span> <div>${statusBadge}${actionBtns}</div> </div> </div>`; }
-
-async function submitTrade(){
-  if(!currentUser){showToast('로그인 필요');return;}
-  const offer=$('tr-offer').value.trim();
-  const want=$('tr-want').value.trim();
-  const note=$('tr-note').value.trim();
-  if(!offer||!want){showToast('제공/원하는 아이템을 입력하세요');return;}
-  // 인벤토리에서 제공 아이템 확인
-  const {name,q}=parseItemName(offer);
-  const inv=getInv();
-  const ex=inv.find(x=>x.n===name);
-  if(!ex||ex.q<q){
-    if(!confirm('인벤토리에 해당 아이템이 없거나 수량이 부족합니다. 그래도 등록하시겠습니까?'))return;
-  }
-  try{
-    await sbReq('POST','trades',{
-      from_name:currentUser.name,
-      from_tag:currentUser.tag,
-      offer,want,note,
-      status:'open',
-      created_at:new Date().toISOString()
-    });
-    closeMo('mo-trade-write');
-    $('tr-offer').value='';$('tr-want').value='';$('tr-note').value='';
-    playS('loot');showToast('✓ 거래 등록 완료');
-    addMLog(`거래등록: ${currentUser.name} — ${offer} ⇄ ${want}`);
-    loadTrades();
-  }catch(e){showToast('등록 실패');}
-}
-
-async function acceptTrade(id, fromTag, offerStr, wantStr){
-  if(!currentUser){showToast('로그인 필요');return;}
-  // 내가 제공해야 할 것 = want (등록자가 원하는 것)
-  const wantParsed=parseItemName(wantStr);
-  const offerParsed=parseItemName(offerStr);
-  try{
-    await sbReq('PATCH','trades?id=eq.'+id,{
-      status:'accepted',
-      accepted_by:currentUser.name+'(@'+currentUser.tag+')',
-      accepted_at:new Date().toISOString()
-    });
-    // ── 인벤토리 자동 이전 ──
-    // 수락자: want 아이템 차감, offer 아이템 획득
-    removeFromInv(wantParsed.name, wantParsed.q);
-    addToInv(offerParsed.name, offerParsed.icon, offerParsed.q);
-    // 등록자 인벤토리는 localStorage가 다르므로 쪽지로 알림
-    await sbReq('POST','notes',{
-      from_call:'거래소',
-      to_call:fromTag,
-      body:`✓ 거래 수락됨: [${offerStr}] → [${wantStr}] 교환 완료. 인벤토리를 확인하세요.`,
-      type:'urgent',
-      created_at:new Date().toISOString()
-    });
-    renderInv();
-    playS('loot');
-    showToast('✓ 거래 성사! 아이템 자동 이전됨');
-    addMLog(`거래성사: ${currentUser.name} ↔ @${fromTag} | ${offerStr} ⇄ ${wantStr}`);
-    loadTrades();
-  }catch(e){showToast('수락 실패');}
-}
-
-async function cancelTrade(id){
-  if(!currentUser)return;
-  try{
-    await sbReq('DELETE','trades?id=eq.'+id+'&from_tag=eq.'+encodeURIComponent(currentUser.tag));
-    showToast('거래 취소됨');
-    addMLog(`거래취소: ${currentUser.name}`);
-    loadTrades();
-  }catch(e){showToast('취소 실패');}
-}
-
-// ============================================================
-// 강탈 시스템 — 주사위 결투
-// ============================================================
-let robPending={};
-
-function attemptRob(tradeId, victimTag, offerStr){
-  if(!currentUser){showToast('로그인 필요');return;}
-  // 결투 오버레이 열기
-  robPending={tradeId, victimTag, offerStr};
-  $('rob-atk-val').textContent='?';
-  $('rob-atk-val').className='rob-dice-val';
-  $('rob-def-val').textContent='?';
-  $('rob-def-val').className='rob-dice-val';
-  $('rob-result').textContent='';
-  $('rob-result').className='rob-result';
-  $('rob-duel-sub').textContent=`[${offerStr}] 강탈 시도`;
-  $('rob-attacker-label').textContent=currentUser.name;
-  $('rob-defender-label').textContent='@'+victimTag;
-  $('rob-roll-btn').style.display='block';
-  $('rob-close-btn').style.display='none';
-  $('rob-duel').classList.add('show');
-  vibrateDevice();
-}
-
-function rollRobDice(){
-  $('rob-roll-btn').disabled=true;
-  const atkEl=$('rob-atk-val');
-  const defEl=$('rob-def-val');
-  atkEl.className='rob-dice-val rolling';
-  defEl.className='rob-dice-val rolling';
-
-  let ticks=0;
-  const iv=setInterval(()=>{
-    atkEl.textContent=Math.ceil(Math.random()*6);
-    defEl.textContent=Math.ceil(Math.random()*6);
-    ticks++;
-    if(ticks>18){
-      clearInterval(iv);
-      const atk=Math.ceil(Math.random()*6);
-      const def=Math.ceil(Math.random()*6);
-      atkEl.textContent=atk;
-      defEl.textContent=def;
-      atkEl.className='rob-dice-val '+(atk>def?'win':'lose');
-      defEl.className='rob-dice-val '+(def>=atk?'win':'lose');
-      playS(atk>def?'loot':'alert');
-      finishRob(atk, def);
-    }
-  }, 80);
-}
-
-async function finishRob(atk, def){
-  const {tradeId, victimTag, offerStr}=robPending;
-  const success = atk > def;
-  const resultEl=$('rob-result');
-  const offerParsed=parseItemName(offerStr);
-
-  if(success){
-    resultEl.textContent='강탈 성공!';
-    resultEl.className='rob-result win';
-    try{
-      await sbReq('PATCH','trades?id=eq.'+tradeId,{status:'robbed',accepted_by:'UNKNOWN'});
-      addToInv(offerParsed.name, offerParsed.icon, offerParsed.q);
-      renderInv();
-      await sbReq('POST','notes',{
-        from_call:'⚠ 시스템',to_call:victimTag,
-        body:`귀하의 거래품 [${offerStr}]이 정체불명의 누군가에게 강탈되었습니다.`,
-        type:'urgent',created_at:new Date().toISOString()
-      });
-      addMLog(`[강탈성공] ${currentUser.name}(@${currentUser.tag}) → @${victimTag} [${offerStr}] (${atk}vs${def})`);
-    }catch(e){}
-  } else {
-    resultEl.textContent='강탈 실패 — 격리 위험도 +1';
-    resultEl.className='rob-result lose';
-    try{
-      const pr=await sbReq('GET','profiles?tag=eq.'+encodeURIComponent(currentUser.tag)+'&select=quarantine_count');
-      if(pr&&pr[0]){
-        const newCount=(pr[0].quarantine_count||0)+1;
-        await sbReq('PATCH','profiles?tag=eq.'+encodeURIComponent(currentUser.tag),{quarantine_count:newCount});
-        currentUser.quarantine_count=newCount;
-        localStorage.setItem('vx24_user',JSON.stringify(currentUser));
-        if(newCount>=3) resultEl.textContent='강탈 실패 — 격리 위험 3회 도달!';
-      }
-      addMLog(`[강탈실패] ${currentUser.name}(@${currentUser.tag}) → @${victimTag} (${atk}vs${def}) 위험도+1`);
-    }catch(e){}
-  }
-  $('rob-roll-btn').style.display='none';
-  $('rob-close-btn').style.display='block';
-  loadTrades();
-}
-
-function closeRobDuel(){
-  $('rob-duel').classList.remove('show');
-  $('rob-roll-btn').disabled=false;
-  robPending={};
-}
+async function refreshInfectionCount(){try{const _d=await sbReq('GET','profiles?quarantine_count=gte.1&select=quarantine_count');if(!_d)return;const _q=_d.filter(p=>(p.quarantine_count||0)>=3).length;const _s=_d.length;const _lm=DISASTER_MSGS[DISASTER_MSGS.length-1];if(_lm)_lm.body='오늘 기준 VX-24 감염 현황입니다.\n\n확진(의심): '+_s+'명\n격리 처리: '+_q+'명\n\nD구역 봉쇄선 유지 중. 전국 위기경보 수준 [심각] 유지.\n\n생존자 여러분의 협조를 당부드립니다.\n─ 전국재난안전대책본부';}catch(e){}} // 감염자수 갱신: afterLogin에서 호출  // 쪽지/재난문자 수신 시 핸드폰 진동+소리 const _origLoadNotes=typeof loadNotes==='function'?loadNotes:null;  // ============================================================ // AUTO EMERGENCY // ============================================================ setTimeout(()=>{(function em(){const es=[{a:'⚠ ALPHA-1 ⚠',m:'D구역 변이체',s:'대피소 폐쇄'},{a:'⚠ 봉쇄선 ⚠',m:'B구역 침투',s:'현 위치 대기'},{a:'⚠ 비상 ⚠',m:'식수 변경',s:'350ml'}];const e=es[Math.floor(Math.random()*es.length)];$('ea').textContent=e.a;$('em').textContent=e.m;$('es').textContent=e.s;$('emg').classList.add('show');playS('alert');setTimeout(em,90000+Math.random()*90000)})()},45000+Math.random()*30000);  // ============================================================ // 고급 구현 #1: 감염 HUD 애니메이션 // ============================================================ function animateHUD(){   let target=0;   const steps=INF_ST;   let si=0;   setInterval(()=>{     si=(si+1)%steps.length;     target=steps[si].pct;     $('hud-inf').style.width=target+'%';     $('hud-inf-val').textContent=target+'%';     $('hud-inf').style.background=target>70?'var(--acl)':target>40?'var(--org)':'var(--ylw)';   },8000); }  // ============================================================ // 고급 구현 #3: 글리치 효과 (주기적 화면 결함) // ============================================================ (function glitchEffect(){   setInterval(()=>{     if(Math.random()>.85){       const els=document.querySelectorAll('.topbar-t,.ctit,.dpt');       if(els.length){         const el=els[Math.floor(Math.random()*els.length)];         el.style.cssText='transform:translateX(2px);filter:hue-rotate(90deg)';         setTimeout(()=>el.style.cssText='',80);         setTimeout(()=>{el.style.cssText='transform:translateX(-2px)';setTimeout(()=>el.style.cssText='',80)},120);       }     }   },3000); })();  // ============================================================ // 물자 교환소 // ============================================================ // ============================================================ // 인벤토리 헬퍼 — 아이템 이름 파싱 & 자동 이전 // ============================================================ const ITEM_MAP={   '생수':  {i:'💧'},'물':{i:'💧'},   '즉석밥':{i:'🍚'},'밥':{i:'🍚'},   '건빵':  {i:'🍪'},'과자':{i:'🍪'},   '의료킷':{i:'🩹'},'의약품':{i:'🩹'},'약':{i:'🩹'},   '건전지':{i:'🔋'},'배터리':{i:'🔋'},   '마스크':{i:'😷'},   '라면':  {i:'🍜'},   '칼':    {i:'🔪'},'나이프':{i:'🔪'},   '랜턴':  {i:'🔦'},'손전등':{i:'🔦'},   '통조림':{i:'🥫'},   '로프':  {i:'🪢'},'줄':{i:'🪢'}, }; function parseItemName(str){   // "생수 2개", "건전지 1개", "마스크" 등에서 이름/수량 파싱   str=str.trim();   const qm=str.match(/([x×]|\s)(\d+)(개|병|개씩)?$/);   let q=1, name=str;   if(qm){q=parseInt(qm[2]);name=str.slice(0,str.length-qm[0].length).trim();}   else{const nm=str.match(/^(.+?)\s+(\d+)(개|병)?$/);if(nm){name=nm[1].trim();q=parseInt(nm[2]);}}   const icon=(ITEM_MAP[name]||{}).i||'📦';   return{name,q,icon}; } function removeFromInv(name,q){   const inv=getInv();   const ex=inv.find(x=>x.n===name);   if(!ex)return false;   ex.q-=q;   if(ex.q<=0){const idx=inv.indexOf(ex);inv.splice(idx,1);}   localStorage.setItem('vx24_inv',JSON.stringify(inv));   return true; } function hasInvItem(name){   return getInv().some(x=>x.n===name&&x.q>0); }
 
 // ============================================================
 // 마스터 — 거래 전체 내역 조회
