@@ -1419,6 +1419,16 @@ input[type=range].radio-range::-moz-range-thumb{
 </div>
 
 <script>
+<script>
+  // loadTrades가 선언되기 전에 버튼이 눌리거나 afterLogin에서 호출돼도 크래시 방지
+  window.loadTrades = window.loadTrades || function () {
+    console.warn('[guard] loadTrades called before definition; ignored.');
+  };
+
+  // (원래 있던 코드가 여기서부터 이어짐)
+  // ============================================================
+  // CORE UTILS
+  // ============================================================
 // ============================================================
 // CORE UTILS
 // ============================================================
