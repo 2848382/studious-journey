@@ -1561,8 +1561,8 @@ async function rollRobDice() {
       clearInterval(anim);
       atkEl.classList.remove('rolling');
       defEl.classList.remove('rolling');
-      const atk = Math.ceil(Math.random() * 20);
-      const def = Math.ceil(Math.random() * 20);
+      const atk = parseInt(atkEl.textContent) || Math.ceil(Math.random() * 20);
+      const def = parseInt(defEl.textContent) || Math.ceil(Math.random() * 20);
       atkEl.textContent = atk;
       defEl.textContent = def;
       if (atk > def) {
@@ -1587,7 +1587,7 @@ async function rollRobDice() {
 }
 
 function escH(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
   // (원래 있던 코드가 여기서부터 이어짐)
