@@ -1429,9 +1429,6 @@ input[type=range].radio-range::-moz-range-thumb{
   // ============================================================
   // CORE UTILS
   // ============================================================
-// ============================================================
-// CORE UTILS
-// ============================================================
 const $=id=>document.getElementById(id);
 const SB_URL='https://tyrqydzlyasqlxnjjwol.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR5cnF5ZHpseWFzcWx4bmpqd29sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5ODcxNzEsImV4cCI6MjA4ODU2MzE3MX0.yImgzzBBk1vpJorpDKA_fXIDLZI64bCJqR2KDpqcz4M';
