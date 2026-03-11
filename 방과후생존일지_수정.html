@@ -2829,7 +2829,12 @@ function renderMasterDash(){
       </span>
       <div style="display:flex;gap:3px;flex-shrink:0">
         <button class="m-btn${p.cen?'':' danger'}" style="padding:2px 6px;font-size:8px" onclick="masterToggleCen(${p.id},${!!p.cen})">${p.cen?'복구':'검열'}</button>        <button class="m-btn danger" style="padding:2px 6px;font-size:8px;opacity:.7" onclick="masterDeletePost(${p.id},'${(p.title||'').replace(/'/g,'').substring(0,8)}')">삭제</button>       </div>     </div>`
-).join('');   renderBanList(); }  async function masterToggleCen(id,isCen){   try{     await sbReq('PATCH','posts?id=eq.'+id,{cen:!isCen});     await loadPostsFromDB();     renderMasterDash();     addMLog((isCen?'복구':'검열')+': #'+id);     showToast(isCen?'✓ 복구':'✓ 검열');   }catch(e){showToast('처리 실패');} }  async function masterDeletePost(id,titlePreview){   if(!confirm('['+titlePreview+'...] 완전 삭제할까요?\n복구 불가합니다.'))return;   try{     await sbReq('DELETE','posts?id=eq.'+id);     await loadPostsFromDB();     renderMasterDash();     addMLog('삭제: #'+id);     showToast('🗑 삭제 완료');     playS('alert');   }catch(e){showToast('삭제 실패');} } function masterEmg(){const type=$('m-emg-type').value;let a,m,s;if(type==='custom'){a=$('m-emg-code').value||'⚠';m=$('m-emg-msg').value||'긴급';s=$('m-emg-sub').value||'대기'}else{const pr={mutant:{a:'⚠ ALPHA-1 ⚠',m:'변이체 이동',s:'대피소 폐쇄'},breach:{a:'⚠ 봉쇄선 ⚠',m:'침투',s:'현 위치 대기'},water:{a:'⚠ 비상 ⚠',m:'식수 변경',s:'350ml'}};const p=pr[type];a=p.a;m=p.m;s=p.s}$('ea').textContent=a;$('em').textContent=m;$('es').textContent=s;$('emg').classList.add('show');playS('alert');addMLog('방송: '+m)} async function masterNotice(){   const t=$('m-notice-title').value.trim(),b=$('m-notice-body').value.trim();   if(!t)return;   try{     await sbReq('POST','posts',{       cat:'notice',title:t,body:b||t,       auth:'작전사령부',author_tag:'master',       pin:true,cen:false,locked:false,lockpw:'',cmts:[],       created_at:new Date().toISOString()     });     $('m-notice-title').value='';$('m-notice-body').value='';     await loadPostsFromDB();     renderMasterDash();     addMLog('공지: '+t);     showToast('✓ 공지 등록');   }catch(e){showToast('공지 실패');} } function renderMPassCodes(){const el=$('m-pass-codes');if(!el)return;el.innerHTML=ZD.map(z=>`<div class="m-row"><span style="font-family:var(--m);font-size:10px;color:${z.color};min-width:42px">${z.name}</span><input class="m-input" style="flex:1;font-family:var(--m);text-transform:uppercase" value="${zoneCodes[z.id]}" onchange="zoneCodes['${z.id}']=this.value.toUpperCase();addMLog('${z.name} 코드 변경')"></div>`).join('')} function masterRandomizeCodes(){const ch='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';ZD.forEach(z=>{let c='';for(let i=0;i<6;i++)c+=ch[Math.floor(Math.random()*ch.length)];zoneCodes[z.id]=c});renderMPassCodes();addMLog('코드 랜덤');showToast('코드 변경')} function masterAddMission(){const t=$('m-mis-title').value.trim(),d=$('m-mis-desc').value.trim(),r=$('m-mis-reward').value.trim()||'없음',c=$('m-mis-code').value.trim().toUpperCase();if(!t||!d)return;const id=missions.length?Math.max(...missions.map(m=>m.id))+1:1;missions.push({id,title:t,desc:d,reward:r,code:c,status:missions.every(m=>m.status==='done')?'active':'locked'});$('m-mis-title').value='';$('m-mis-desc').value='';$('m-mis-reward').value='';$('m-mis-code').value='';addMLog('미션: '+t);renderMMissionList();renderMissions()} function renderMMissionList(){const el=$('m-mission-list');if(!el)return;el.innerHTML=missions.map(m=>`<div style="display:flex;justify-content:space-between;padding:2px 0;font-size:10px;border-bottom:1px solid rgba(255,255,255,.03)"><span style="color:${m.status==='done'?'var(--grn)':m.status==='active'?'var(--ylw)':'var(--txf)'}">${m.title}</span><div><button class="m-btn" style="padding:1px 5px;font-size:8px" onclick="missions.find(x=>x.id===${m.id}).status='active';renderMMissionList();renderMissions()">해제</button><button class="m-btn danger" style="padding:1px 5px;font-size:8px;margin-left:2px" onclick="missions=missions.filter(x=>x.id!==${m.id});renderMMissionList();renderMissions()">삭제</button></div></div>`).join('')} function masterAddTimer(){const name=$('m-timer-name').value.trim(),min=parseInt($('m-timer-min').value),desc=$('m-timer-desc').value.trim()||'';if(!name||!min)return;activeTimers.push({name,desc,endTime:Date.now()+min*60000,totalMs:min*60000,fired:false});addMLog('타이머: '+name);$('m-timer-name').value='';$('m-timer-min').value='';$('m-timer-desc').value='';$('ea').textContent='⚠ 타이머 ⚠';$('em').textContent=name;$('es').textContent=min+'분';$('emg').classList.add('show');playS('alert')} function masterClearTimers(){activeTimers=[];addMLog('타이머 제거');renderTimers()} function masterRadio(){const f=$('m-radio-freq').value.trim(),m=$('m-radio-msg').value.trim();if(!f||!m)return;customBC.push({freq:f,msg:m});addMLog('라디오: '+f+'MHz');showToast('📻 '+f);$('m-radio-freq').value='';$('m-radio-msg').value=''} function renderBanList(){$('m-ban-list').innerHTML=BAN.map((w,i)=>`<span style="font-family:var(--m);font-size:9px;padding:2px 5px;background:var(--bgi);border:1px solid var(--bd);color:var(--txd);cursor:pointer" onclick="BAN.splice(${i},1);renderBanList()">${w} ✕</span>`).join('')} function masterAddBan(){const w=$('m-ban-word').value.trim().toLowerCase();if(!w||BAN.includes(w))return;BAN.push(w);$('m-ban-word').value='';renderBanList();addMLog('금지어: '+w)} async function masterLoadCapsules(){try{const data=await sbReq('GET','capsules?select=*&order=created_at.desc&limit=50');$('m-capsule-list').innerHTML=(data||[]).map(c=>`<div style="padding:4px 0;border-bottom:1px solid rgba(255,255,255,.03);font-size:10px"><span style="color:var(--ylw)">${c.author_name}(@${c.author_tag})</span><div style="color:var(--tx);margin-top:2px">${c.message}</div><div style="color:var(--txf);font-family:var(--m);font-size:8px">pw: ${c.pw}</div></div>`).join('')||'없음'}catch(e){$('m-capsule-list').innerHTML='실패'}}    // ============================================================ // 배터리 + 신호 강도 // ============================================================ function updateBatteryUI(pct, charging, online){   const pctEl=$('lock-battery-pct');   const fillEl=$('lock-battery-fill');   const chargeEl=$('lock-charge-icon');   const sigEl=$('lock-signal');   if(pctEl){     pctEl.textContent=(pct!==null?Math.round(pct)+'%':'--');     if(fillEl){       fillEl.style.width=(pct!==null?pct:'100')+'%';       fillEl.style.background=pct<20?'#ef4444':pct<50?'#eab308':'#4ade80';     }     if(chargeEl) chargeEl.style.display=charging?'inline':'none';   }   if(sigEl){     if(!online) sigEl.innerHTML='✕ NO SIGNAL';     else sigEl.innerHTML='▂▄▆ LTE';   } }  async function initBattery(){   const online=navigator.onLine;   if(navigator.getBattery){     try{       const bat=await navigator.getBattery();       const update=()=>updateBatteryUI(bat.level*100, bat.charging, navigator.onLine);       update();       bat.addEventListener('levelchange',update);       bat.addEventListener('chargingchange',update);     }catch(e){updateBatteryUI(null,false,online);}   } else {     updateBatteryUI(null,false,online);   }   window.addEventListener('online',()=>updateBatteryUI(null,false,true));   window.addEventListener('offline',()=>updateBatteryUI(null,false,false)); } // initBattery는 DOM 준비 후 실행 if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',initBattery);}else{initBattery();}  // ============================================================ // 폰 탭 전환 // ============================================================ 
+).join('');   renderBanList(); }  async function masterToggleCen(id,isCen){   try{     await sbReq('PATCH','posts?id=eq.'+id,{cen:!isCen});     await loadPostsFromDB();     renderMasterDash();     addMLog((isCen?'복구':'검열')+': #'+id);     showToast(isCen?'✓ 복구':'✓ 검열');   }catch(e){showToast('처리 실패');} }  async function masterDeletePost(id,titlePreview){   if(!confirm('['+titlePreview+'...] 완전 삭제할까요?\n복구 불가합니다.'))return;   try{     await sbReq('DELETE','posts?id=eq.'+id);     await loadPostsFromDB();     renderMasterDash();     addMLog('삭제: #'+id);     showToast('🗑 삭제 완료');     playS('alert');   }catch(e){showToast('삭제 실패');} } function masterEmg(){const type=$('m-emg-type').value;let a,m,s;if(type==='custom'){a=$('m-emg-code').value||'⚠';m=$('m-emg-msg').value||'긴급';s=$('m-emg-sub').value||'대기'}else{const pr={mutant:{a:'⚠ ALPHA-1 ⚠',m:'변이체 이동',s:'대피소 폐쇄'},breach:{a:'⚠ 봉쇄선 ⚠',m:'침투',s:'현 위치 대기'},water:{a:'⚠ 비상 ⚠',m:'식수 변경',s:'350ml'}};const p=pr[type];a=p.a;m=p.m;s=p.s}$('ea').textContent=a;$('em').textContent=m;$('es').textContent=s;$('emg').classList.add('show');playS('alert');addMLog('방송: '+m)} async function masterNotice(){   const t=$('m-notice-title').value.trim(),b=$('m-notice-body').value.trim();   if(!t)return;   try{     await sbReq('POST','posts',{       cat:'notice',title:t,body:b||t,       auth:'작전사령부',author_tag:'master',       pin:true,cen:false,locked:false,lockpw:'',cmts:[],       created_at:new Date().toISOString()     });     $('m-notice-title').value='';$('m-notice-body').value='';     await loadPostsFromDB();     renderMasterDash();     addMLog('공지: '+t);     showToast('✓ 공지 등록');   }catch(e){showToast('공지 실패');} } function renderMPassCodes(){const el=$('m-pass-codes');if(!el)return;el.innerHTML=ZD.map(z=>`<div class="m-row"><span style="font-family:var(--m);font-size:10px;color:${z.color};min-width:42px">${z.name}</span><input class="m-input" style="flex:1;font-family:var(--m);text-transform:uppercase" value="${zoneCodes[z.id]}" onchange="zoneCodes['${z.id}']=this.value.toUpperCase();addMLog('${z.name} 코드 변경')"></div>`).join('')} function masterRandomizeCodes(){const ch='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';ZD.forEach(z=>{let c='';for(let i=0;i<6;i++)c+=ch[Math.floor(Math.random()*ch.length)];zoneCodes[z.id]=c});renderMPassCodes();addMLog('코드 랜덤');showToast('코드 변경')} function masterAddMission(){const t=$('m-mis-title').value.trim(),d=$('m-mis-desc').value.trim(),r=$('m-mis-reward').value.trim()||'없음',c=$('m-mis-code').value.trim().toUpperCase();if(!t||!d)return;const id=missions.length?Math.max(...missions.map(m=>m.id))+1:1;missions.push({id,title:t,desc:d,reward:r,code:c,status:missions.every(m=>m.status==='done')?'active':'locked'});$('m-mis-title').value='';$('m-mis-desc').value='';$('m-mis-reward').value='';$('m-mis-code').value='';addMLog('미션: '+t);renderMMissionList();renderMissions()} function renderMMissionList(){const el=$('m-mission-list');if(!el)return;el.innerHTML=missions.map(m=>`<div style="display:flex;justify-content:space-between;padding:2px 0;font-size:10px;border-bottom:1px solid rgba(255,255,255,.03)"><span style="color:${m.status==='done'?'var(--grn)':m.status==='active'?'var(--ylw)':'var(--txf)'}">${m.title}</span><div><button class="m-btn" style="padding:1px 5px;font-size:8px" onclick="missions.find(x=>x.id===${m.id}).status='active';renderMMissionList();renderMissions()">해제</button><button class="m-btn danger" style="padding:1px 5px;font-size:8px;margin-left:2px" onclick="missions=missions.filter(x=>x.id!==${m.id});renderMMissionList();renderMissions()">삭제</button></div></div>`).join('')} function masterAddTimer(){const name=$('m-timer-name').value.trim(),min=parseInt($('m-timer-min').value),desc=$('m-timer-desc').value.trim()||'';if(!name||!min)return;activeTimers.push({name,desc,endTime:Date.now()+min*60000,totalMs:min*60000,fired:false});addMLog('타이머: '+name);$('m-timer-name').value='';$('m-timer-min').value='';$('m-timer-desc').value='';$('ea').textContent='⚠ 타이머 ⚠';$('em').textContent=name;$('es').textContent=min+'분';$('emg').classList.add('show');playS('alert')} function masterClearTimers(){activeTimers=[];addMLog('타이머 제거');renderTimers()} function masterRadio(){const f=$('m-radio-freq').value.trim(),m=$('m-radio-msg').value.trim();if(!f||!m)return;customBC.push({freq:f,msg:m});addMLog('라디오: '+f+'MHz');showToast('📻 '+f);$('m-radio-freq').value='';$('m-radio-msg').value=''} function renderBanList(){$('m-ban-list').innerHTML=BAN.map((w,i)=>`<span style="font-family:var(--m);font-size:9px;padding:2px 5px;background:var(--bgi);border:1px solid var(--bd);color:var(--txd);cursor:pointer" onclick="BAN.splice(${i},1);renderBanList()">${w} ✕</span>`).join('')} function masterAddBan(){const w=$('m-ban-word').value.trim().toLowerCase();if(!w||BAN.includes(w))return;BAN.push(w);$('m-ban-word').value='';renderBanList();addMLog('금지어: '+w)} async function masterLoadCapsules(){try{const data=await sbReq('GET','capsules?select=*&order=created_at.desc&limit=50');$('m-capsule-list').innerHTML=(data||[]).map(c=>`<div style="padding:4px 0;border-bottom:1px solid rgba(255,255,255,.03);font-size:10px"><span style="color:var(--ylw)">${c.author_name}(@${c.author_tag})</span><div style="color:var(--tx);margin-top:2px">${c.message}</div><div style="color:var(--txf);font-family:var(--m);font-size:8px">pw: ${c.pw}</div></div>`).join('')||'없음'}catch(e){$('m-capsule-list').innerHTML='실패'}}    
+  // ============================================================ // 배터리 + 신호 강도 // ============================================================ 
+  function updateBatteryUI(pct, charging, online){   const pctEl=$('lock-battery-pct');   const fillEl=$('lock-battery-fill');   const chargeEl=$('lock-charge-icon');   const sigEl=$('lock-signal');   if(pctEl){     pctEl.textContent=(pct!==null?Math.round(pct)+'%':'--');     if(fillEl){       fillEl.style.width=(pct!==null?pct:'100')+'%';       fillEl.style.background=pct<20?'#ef4444':pct<50?'#eab308':'#4ade80';     }     if(chargeEl) chargeEl.style.display=charging?'inline':'none';   }   if(sigEl){     if(!online) sigEl.innerHTML='✕ NO SIGNAL';     else sigEl.innerHTML='▂▄▆ LTE';   } }  async function initBattery(){   const online=navigator.onLine;   if(navigator.getBattery){     try{       const bat=await navigator.getBattery();       const update=()=>updateBatteryUI(bat.level*100, bat.charging, navigator.onLine);       update();       bat.addEventListener('levelchange',update);       bat.addEventListener('chargingchange',update);     }catch(e){updateBatteryUI(null,false,online);}   } else {     updateBatteryUI(null,false,online);   }   window.addEventListener('online',()=>updateBatteryUI(null,false,true));   window.addEventListener('offline',()=>updateBatteryUI(null,false,false)); } 
+  // initBattery는 DOM 준비 후 실행 
+  if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',initBattery);}else{initBattery();}  
+  // ============================================================ // 폰 탭 전환 // ============================================================ 
 function switchPhoneTab(tab){
   const msgTab=$('phone-tab-msg');
   if(msgTab) msgTab.style.display=tab==='msg'?'flex':'none';
@@ -2856,7 +2861,7 @@ function switchPhoneTab(tab){
   let ecSelected=[]; let ecContacts=null; 
   // 확정 후 저장  
   function loadEC(){   try{     const raw=localStorage.getItem('vx24_ec');     if(raw) ecContacts=JSON.parse(raw);   }catch(e){} } loadEC();  
-  function renderEmergencyContacts(){
+function renderEmergencyContacts(){
   const listEl=$('phone-contacts-list');
   const setupEl=$('phone-ec-setup');
   if(!listEl||!setupEl)return;
@@ -2882,7 +2887,7 @@ function switchPhoneTab(tab){
 function searchEmergencyContact() {
     const input = $('ec-search-input');
     const val = input ? input.value : '';
-    const ac = $('ec-tag-ac');
+    const search_ac = $('ec-tag-ac');
     
     // @ 태그 자동완성
     if (val.startsWith('@') && val.length > 1 && registeredUsers.length > 0) {
@@ -2893,12 +2898,23 @@ function searchEmergencyContact() {
             return u.tag.toLowerCase().includes(query) || u.name.toLowerCase().includes(query);
         }).slice(0, 5);
         
-        if (matches.length > 0 && ac) {
-            ac.style.display = 'block';
-            ac.innerHTML = matches.map(u => 
+        if (matches.length > 0 && search_ac) {
+            search_ac.style.display = 'block';
+            search_ac.innerHTML = matches.map(u => 
                 `<div class="tag-ac-item" onmousedown="addEcSelected('${u.tag}', '${u.name}'); document.getElementById('ec-search-input').value=''; document.getElementById('ec-tag-ac').style.display='none';">
                     <span class="tag-ac-tag">@${u.tag}</span>
                     <span class="tag-ac-name">${u.name}</span>
+                </div>`
+            ).join('');
+            renderEcSearchList(query);
+            return;
+        }
+    }
+    if (search_ac) search_ac.style.display = 'none';
+    const q = val.replace(/^@/, '').toLowerCase();
+    renderEcSearchList(q);
+}                    
+  <span class="tag-ac-name">${u.name}</span>
                 </div>`
             ).join('');
             renderEcSearchList(query);
@@ -2909,6 +2925,7 @@ function searchEmergencyContact() {
     const q = val.replace(/^@/, '').toLowerCase();
     renderEcSearchList(q);
 } 
+  
   function renderEcSearchList(q){   
     const el=$('ec-search-list');   
     if(!el)return;   
@@ -3255,6 +3272,7 @@ async function submitReport(tag,name){
   if(localStorage.getItem('vx24_rep_'+tag)){showToast('이미 신고한 유저입니다');return;}
   if(tag===currentUser.tag){showToast('본인 신고 불가');return;}
   try{
+ 
     // quarantine_count 증가
     const profileData=await sbReq('GET','profiles?tag=eq.'+encodeURIComponent(tag));
     if(!profileData||!profileData.length){showToast('유저를 찾을 수 없습니다');return;}
@@ -3266,11 +3284,13 @@ async function submitReport(tag,name){
     if(newCount>=3){
       showToast('⚠ '+name+' 격리 처리됨!');
       triggerQuarantineAlert(name,tag);
+     
       // 자동: 격리 쪽지 발송
       sbReq('POST','notes',{from_call:'🔴 통합사령부',to_call:tag,body:name+'님은 신고 3건 누적으로 즉시 격리 처리되었습니다. 격리 구역으로 이동하십시오.',type:'urgent',created_at:new Date().toISOString()}).catch(()=>{});
       addMLog('[자동] 격리 쪽지 → '+name+'(@'+tag+')');
     } else {
       showToast('신고 접수 ('+newCount+'/3)');
+  
       // 자동: 경고 쪽지
       sbReq('POST','notes',{from_call:'⚠ 감염통제센터',to_call:tag,body:'[경고 '+newCount+'/3] 감염 의심 신고가 접수되었습니다. 3회 누적 시 자동 격리됩니다.',type:'urgent',created_at:new Date().toISOString()}).catch(()=>{});
       addMLog('[자동] 경고 쪽지 → '+name+' ('+newCount+'/3)');sendReportConfirmation(name,newCount);
@@ -3281,6 +3301,7 @@ async function submitReport(tag,name){
 }
 
 function triggerQuarantineAlert(name,tag){
+  
   // 격리 경고 오버레이
   const ov=document.createElement('div');
   ov.className='infected-overlay';
