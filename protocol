@@ -7014,18 +7014,37 @@ function urlBase64ToUint8(base64String) {
   return Uint8Array.from(raw, c => c.charCodeAt(0));
 }
 
-async function subscribePush() {
-  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return null;
+async function savePushSub(sub) {
+  if (!sub || !currentUser) return;
   try {
-    const reg = await navigator.serviceWorker.ready;
-    const existing = await reg.pushManager.getSubscription();
-    if (existing) return existing;
-    const sub = await reg.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8(VAPID_PUBLIC_KEY)
+    // 1. 기기 고유 ID 확인 및 생성 (없으면 만들어서 브라우저에 저장)
+    let deviceId = localStorage.getItem('vx24_device_id');
+    if (!deviceId) {
+      deviceId = 'dev_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
+      localStorage.setItem('vx24_device_id', deviceId);
+    }
+
+    // 2. 구독 데이터를 JSON 객체로 준비 (새 테이블은 jsonb 타입이므로)
+    const subData = sub.toJSON();
+    
+    // 유저 ID 가져오기 (보통 currentUser.id 를 사용합니다)
+    const userId = currentUser.id;
+
+    // 3. 중복 저장 방지를 위해, 현재 유저의 이 기기 정보가 이미 있다면 먼저 삭제
+    await sbReq('DELETE', 'push_subscriptions?user_id=eq.' + userId + '&device_id=eq.' + deviceId);
+
+    // 4. 새로운 테이블(push_subscriptions)에 기기별 구독 정보 등록
+    await sbReq('POST', 'push_subscriptions', {
+      user_id: userId,
+      device_id: deviceId,
+      subscription: subData,
+      updated_at: new Date().toISOString()
     });
-    return sub;
-  } catch(e) { return null; }
+
+    console.log("✅ 기기별 푸시 구독 저장 완료!");
+  } catch(e) {
+    console.error("❌ 푸시 저장 실패:", e);
+  }
 }
 
 async function savePushSub(sub) {
