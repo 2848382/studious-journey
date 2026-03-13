@@ -7014,47 +7014,57 @@ function urlBase64ToUint8(base64String) {
   return Uint8Array.from(raw, c => c.charCodeAt(0));
 }
 
+async function subscribePush() {
+  const registration = await navigator.serviceWorker.ready;
+  const publicVapidKey = "BLZ0ykXaxaWKjjQ-FswPuxDL3ZTyPe-3tni7vkhUoDuvOeqPVFlNQFV5MEmZCc4xWk4KsnNkRF-H85dIppRTU0g";
+  
+  return await registration.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
+  });
+}
+
 async function savePushSub(sub) {
-  if (!sub || !currentUser) return;
+  if (!sub || !currentUser) {
+    console.log("❌ 구독/유저 정보 없음");
+    return;
+  }
+
   try {
-    // 1. 기기 고유 ID 확인 및 생성 (없으면 만들어서 브라우저에 저장)
     let deviceId = localStorage.getItem('vx24_device_id');
     if (!deviceId) {
       deviceId = 'dev_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
       localStorage.setItem('vx24_device_id', deviceId);
     }
 
-    // 2. 구독 데이터를 JSON 객체로 준비 (새 테이블은 jsonb 타입이므로)
+    let userId = currentUser.id || currentUser.user_id || currentUser.tag;
     const subData = sub.toJSON();
-    
-    // 유저 ID 가져오기 (보통 currentUser.id 를 사용합니다)
-    const userId = currentUser.id;
 
-    // 3. 중복 저장 방지를 위해, 현재 유저의 이 기기 정보가 이미 있다면 먼저 삭제
-    await sbReq('DELETE', 'push_subscriptions?user_id=eq.' + userId + '&device_id=eq.' + deviceId);
-
-    // 4. 새로운 테이블(push_subscriptions)에 기기별 구독 정보 등록
-    await sbReq('POST', 'push_subscriptions', {
-      user_id: userId,
-      device_id: deviceId,
-      subscription: subData,
-      updated_at: new Date().toISOString()
+    // 409 에러 방지: 데이터가 이미 있으면 업데이트, 없으면 새로 생성(Upsert)
+    const res = await fetch(SB_URL + '/rest/v1/push_subscriptions', {
+      method: 'POST',
+      headers: {
+        'apikey': SB_KEY,
+        'Authorization': 'Bearer ' + SB_KEY,
+        'Content-Type': 'application/json',
+        'Prefer': 'resolution=merge-duplicates' // 핵심: 중복 시 덮어쓰기!
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        device_id: deviceId,
+        subscription: subData,
+        updated_at: new Date().toISOString()
+      })
     });
 
-    console.log("✅ 기기별 푸시 구독 저장 완료!");
+    if (res.ok) {
+      console.log("✅ 기기별 푸시 구독 덮어쓰기(Upsert) 완료!");
+    } else {
+      console.error("❌ 푸시 저장 실패:", await res.text());
+    }
   } catch(e) {
-    console.error("❌ 푸시 저장 실패:", e);
+    console.error("❌ 통신 에러:", e);
   }
-}
-
-async function savePushSub(sub) {
-  if (!sub || !currentUser) return;
-  try {
-    const subJson = JSON.stringify(sub.toJSON());
-    await sbReq('PATCH', 'profiles?tag=eq.' + encodeURIComponent(currentUser.tag), {
-      push_sub: subJson
-    });
-  } catch(e) {}
 }
 
 async function initPushNotifications() {
@@ -7269,7 +7279,7 @@ window.addEventListener('load', function() {
             } else {
                 alert('🎁 ' + itemName + ' 수령 완료!');
             }
-            
+
             var modal1 = document.querySelector('.note-detail-popup');
             if (modal1) modal1.remove();
             var modal2 = document.getElementById('note-detail-modal');
@@ -7283,7 +7293,37 @@ window.addEventListener('load', function() {
         }
     };
 });
+// 🚀 VAPID 키 변환 번역기 (이게 없어서 DB 저장이 안 됐음!)
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding)
+    .replace(/\-/g, '+')
+    .replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+  // 📡 서비스 워커(택배 기사)가 보내는 무전 수신 대기
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('message', event => {
+    // 마스터가 보낸 푸시 알림 신호라면?
+    if (event.data && event.data.type === 'MASTER_PUSH_RECEIVED') {
+      const pushData = event.data.payload;
+      
+      // 🚀 마스터의 데이터를 게임 속 폰이 알아먹게 이름표 바꿔치기!
+      const fakeNote = {
+        from_call: pushData.title,  // 푸시 제목(예: "🚨 재난문자")을 발신자로!
+        content: pushData.body      // 푸시 내용을 쪽지 내용으로!
+      };
+      
+      // 게임 속 폰 진동 & UI 업데이트 발동!
+      triggerPhoneNotification(fakeNote);
+    }
+  });
+}
 </script>
-
 </body>
 </html>
