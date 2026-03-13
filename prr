@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>방과 후 생존 일지</title>
+<title>ShelterProtocol</title>
 <link rel="manifest" href="manifest.json">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -21,7 +21,13 @@
   --f:'Noto Sans KR',sans-serif;--m:'IBM Plex Mono',monospace;--o:'Orbitron',sans-serif;
   --ls:-.02em;--lsm:.06em
 }
-#first-tos-overlay {
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--tx);font-family:var(--f);font-size:14px;line-height:1.65;min-height:100vh;-webkit-tap-highlight-color:transparent;letter-spacing:var(--ls);word-break:keep-all}
+input,select,textarea,button{font-family:var(--f);letter-spacing:var(--ls)}
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--bd2)}
+button{cursor:pointer;font-family:var(--f)}a{color:var(--acl);text-decoration:none}
+
+  #first-tos-overlay {
   position: fixed; top: 0; left: 0; width: 100%; height: 100%;
   background: #0a0a0c; z-index: 999999;
   display: none; flex-direction: column; justify-content: center; align-items: center;
@@ -36,12 +42,7 @@
 .first-tos-btns button { flex: 1; padding: 14px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 1em; }
 .btn-tos-yes { background: #dc2626; color: white; }
 .btn-tos-no { background: #333; color: #aaa; }
-*{margin:0;padding:0;box-sizing:border-box}
-body{background:var(--bg);color:var(--tx);font-family:var(--f);font-size:14px;line-height:1.65;min-height:100vh;-webkit-tap-highlight-color:transparent;letter-spacing:var(--ls);word-break:keep-all}
-input,select,textarea,button{font-family:var(--f);letter-spacing:var(--ls)}
-::-webkit-scrollbar{width:3px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--bd2)}
-button{cursor:pointer;font-family:var(--f)}a{color:var(--acl);text-decoration:none}
-
+  
 /* AUTH */
 #auth{position:fixed;top:0;left:0;width:100%;height:100%;background:#000;z-index:9000;display:flex;align-items:center;justify-content:center;transition:opacity .8s}
 #auth.done{opacity:0;pointer-events:none}
@@ -985,24 +986,6 @@ input[type=range].radio-range::-moz-range-thumb{
 .infected-overlay{position:fixed;inset:0;background:rgba(185,28,28,.12);z-index:9999;pointer-events:none;animation:infpulse 2s infinite}
 @keyframes infpulse{0%,100%{opacity:0}50%{opacity:1}}
 
-
-
-/* 실시간 감염 게이지 (우상단) */
-.infection-hud-DISABLED{
-  position:fixed;top:50px;right:8px;z-index:90;
-  background:rgba(0,0,0,.7);border:1px solid rgba(185,28,28,.3);
-  padding:6px 8px;font-family:var(--m);font-size:8px;
-  backdrop-filter:blur(4px);pointer-events:none;
-  min-width:100px;
-}
-.hud-title{color:rgba(185,28,28,.6);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px}
-.hud-bar{width:100%;height:3px;background:rgba(255,255,255,.08);margin-bottom:2px}
-.hud-bar-fill{height:100%;background:var(--acl);transition:width 2s;border-radius:2px}
-.hud-val{color:rgba(255,255,255,.5);font-size:7px}
-
-@media(max-width:768px){
-.g2,.dice-a,.fr{grid-template-columns:1fr}.g5{grid-template-columns:repeat(3,1fr)}
-
 /* 게시판 모바일 */
 .blay{display:flex !important;flex-direction:column !important;border:none !important;gap:8px !important;min-height:0 !important}
 .bside{width:100% !important;flex-shrink:0 !important;border:none !important;border-right:none !important;display:flex !important;flex-direction:row !important;overflow-x:auto !important;overflow-y:visible !important;padding:4px 0 !important;gap:6px !important;-webkit-overflow-scrolling:touch;scrollbar-width:none;background:transparent !important;height:auto !important;min-height:0 !important;align-items:center !important}
@@ -1030,6 +1013,7 @@ input[type=range].radio-range::-moz-range-thumb{
 .pass-zones{grid-template-columns:repeat(3,1fr)}
 #pg-board .btn{font-size:12px;padding:7px 14px}
 }
+
 
 /* =====================================================
    모바일 최적화 (@media)
@@ -2165,37 +2149,48 @@ body { background: #13131a; }
 <div id="tos-modal" style="display:none;position:fixed;inset:0;z-index:9500;background:rgba(0,0,0,0.90);align-items:center;justify-content:center;padding:16px">
   <div class="tos-box">
     <div class="tos-header">
-      <div style="font-family:var(--o);font-size:13px;color:var(--acl);letter-spacing:.1em">⚠ VX-24 프로토콜</div>
+      <div style="font-family:var(--o);font-size:13px;color:var(--acl);letter-spacing:.1em">⚠ ShelterProtocol</div>
       <div style="font-family:var(--m);font-size:9px;color:var(--txf);margin-top:2px">이용약관 — 동의 후 가입 가능</div>
     </div>
     <div class="tos-body" id="tos-body">
 <div class="tos-section">
-  <div class="tos-sec-title">제1조 목적</div>
-  <div class="tos-sec-body">본 약관은 «방과 후 생존 일지 / VX-24 프로토콜» (이하 "서비스")의 이용에 관한 조건 및 절차를 규정함을 목적으로 합니다. 본 서비스는 학교 내 TRPG 캠페인의 진행을 위해 운영되는 가상의 생존 시뮬레이션 플랫폼이며, 모든 설정과 사건은 픽션입니다.</div>
+  <div class="tos-sec-title">제1조 (목적)</div>
+  <div class="tos-sec-body">본 약관은 ShelterProtocol 운영자가 제공하는 사이트의 이용과 관련하여, 운영진과 이용자 간의 권리, 의무 및 책임 사항, 기타 필요한 사항을 규정함을 목적으로 합니다. 모든 설정과 사건은 픽션임을 명시합니다.</div>
 </div>
 <div class="tos-section">
-  <div class="tos-sec-title">제2조 이용자 자격</div>
-  <div class="tos-sec-body">본 서비스는 운영자(마스터)가 지정한 참가자만 이용할 수 있습니다. 참가자는 실명 또는 운영자가 승인한 호칭으로 등록해야 하며, 타인의 명의로 계정을 생성하는 행위는 금지됩니다.</div>
+  <div class="tos-sec-title">제2조 (용어의 정의)</div>
+  <div class="tos-sec-body">1. 서비스란 단말기(PC, 휴대형 단말기 등)와 상관없이 이용자가 이용할 수 있는 ShelterProtocol 관련 모든 텍스트 기반 게임 및 커뮤니티 서비스를 의미합니다.<br>
+2. 이용자란 본 서비스에 접속하여 본 약관에 따라 운영진이 제공하는 서비스를 받는 회원 및 비회원을 말합니다.<br>
+3. 회원이란 서비스에 가입하여 계정을 생성하고, 지속적으로 서비스를 이용할 수 있는 자를 말합니다.<br>
+4. 캐릭터란 회원이 서비스 내의 세계관(VX-24 발병 이후의 세계 등)에서 플레이하기 위해 생성하고 조종하는 가상의 데이터를 말합니다.<br></div>
 </div>
 <div class="tos-section">
-  <div class="tos-sec-title">제3조 금지 행위</div>
-  <div class="tos-sec-body">① 타인을 비방·혐오하는 내용의 게시물 작성<br>② 세계관 외 개인정보(실제 주소, 전화번호 등) 공개<br>③ 운영자 허가 없이 타 계정을 생성·사용하는 행위<br>④ 게임 진행을 방해하거나 시스템을 악용하는 행위<br>⑤ 캠페인 내용을 허가 없이 외부에 유포하는 행위<br><br>위반 시 운영자는 사전 통보 없이 계정을 제한하거나 격리 조치를 취할 수 있습니다.</div>
+  <div class="tos-sec-title">제3조 (이용자의 의무 및 제재 사항)</div>
+  <div class="tos-sec-body">이용자는 다음 각 호의 행위를 하여서는 안 되며, 적발 시 운영진은 경고, 캐릭터 삭제, 계정 이용 정지, 영구 추방 등의 제재를 가할 수 있습니다.<br>
+① 회원 가입 또는 정보 변경 시 허위 내용을 등록하는 행위<br>② 타인의 계정을 도용하거나 부정하게 사용하는 행위
+서비스 내 시스템 버그를 악용하거나 비정상적인 방법으로 트래픽을 유발하여 서버에 부담을 주는 행위(매크로, 도배 등)<br>
+③ 운영자 허가 없이 타 계정을 생성·사용하는 행위<br>
+④ 세계관에 심각하게 위배되는 텍스트 작성이나 타인의 플레이를 고의로 방해하는 행위 (메타 게이밍, 과도한 트롤링 등)<br>
+⑤ 타인에게 불쾌감을 주는 욕설, 혐오 발언, 음란물 게재, 현실의 정치/종교적 분쟁을 조장하는 행위
+서비스의 운영진을 사칭하거나 캠페인 내용을 허가 없이 외부에 유포하는 행위를 하는 경우<br><br>위반 시 운영자는 사전 통보 없이 계정을 제한하거나 격리 조치를 취할 수 있습니다.</div>
 </div>
 <div class="tos-section">
-  <div class="tos-sec-title">제4조 게시물 및 개인정보</div>
-  <div class="tos-sec-body">① 게시판에 작성된 내용은 캠페인 종료 시까지 보관될 수 있습니다.<br>② 서비스에 등록된 이름·태그·학교·구역 정보는 캠페인 운영 목적으로만 사용됩니다.<br>③ 인벤토리, 미션 기록 등 게임 데이터는 Supabase를 통해 저장됩니다.<br>④ 캠페인 종료 후 데이터는 운영자 재량으로 삭제 또는 보관됩니다.</div>
+  <div class="tos-sec-title">제4조 (게시물 및 개인정보)</div>
+  <div class="tos-sec-body">① 게시판에 작성된 내용은 러닝 기간 종료 시까지 보관될 수 있습니다.<br>② 서비스에 등록된 이름·태그·학교·구역 정보는 운영 목적으로만 사용됩니다.<br>③ 가입자의 기타 개인정보 및 민감정보는 취득하지 않습니다.<br>④ 러닝 종료 후 데이터는 운영자 재량으로 삭제 또는 보관됩니다.</div>
 </div>
 <div class="tos-section">
-  <div class="tos-sec-title">제5조 면책</div>
-  <div class="tos-sec-body">본 서비스에 등장하는 모든 단체, 장소, 사건, 인물은 픽션이며 실제와 무관합니다. 운영자는 서비스 중단, 데이터 손실 등에 대해 별도의 책임을 지지 않습니다.</div>
+  <div class="tos-sec-title">제5조 (저작권의 귀속 및 이용제한)</div>
+  <div class="tos-sec-body">서비스 내에서 운영진이 작성한 세계관(VX-24 설정, 142.7MHz 등 고유 설정), 텍스트, 시스템 디자인, 스토리 등 모든 저작물에 대한 저작권 및 기타 지적재산권은 ShelterProtocol 운영진에게 귀속됩니다.
+이용자는 서비스를 이용함으로써 얻은 정보 중 운영진에게 지적재산권이 귀속된 정보를 운영진의 사전 승낙 없이 복제, 송신, 출판, 배포, 방송 기타 방법에 의하여 영리 또는 비영리 목적으로 이용하거나 제3자에게 이용하게 하여서는 안 됩니다.
+이용자가 서비스 내에 작성한 캐릭터 설정, 롤플레잉 텍스트 등의 2차적 게시물에 대한 책임은 해당 작성자에게 있으며, 운영진은 게임 운영 및 서사 차용에 이용할 수 있습니다.</div>
 </div>
 <div class="tos-section">
-  <div class="tos-sec-title">제6조 약관 변경</div>
-  <div class="tos-sec-body">운영자는 필요에 따라 약관을 변경할 수 있으며, 변경 시 게시판을 통해 공지합니다. 변경 후에도 서비스를 계속 이용할 경우 변경된 약관에 동의한 것으로 간주합니다.</div>
+  <div class="tos-sec-title">제6조 (면책 조항)</div>
+  <div class="tos-sec-body">운영진은 천재지변, 서버 호스팅 업체의 장애, 기간통신사업자의 회선 장애 등 불가항력으로 인하여 서비스를 제공할 수 없는 경우에는 서비스 제공에 관한 책임이 면제됩니다.</div>
 </div>
 <div class="tos-section tos-last">
   <div class="tos-sec-title">캠페인 참가 서약</div>
-  <div class="tos-sec-body">나는 VX-24 프로토콜의 모든 규칙을 숙지하였으며, 이 캠페인이 픽션임을 이해하고 게임 정신을 준수하여 참가할 것을 서약합니다.</div>
+  <div class="tos-sec-body">나는 Shelter Protocol의 모든 규칙을 숙지하였으며, 게임 정신을 준수하여 참가할 것을 서약합니다.</div>
 </div>
     </div>
     <div class="tos-footer">
@@ -7227,55 +7222,9 @@ window.openGiftUI = async function(itemName, itemIcon, myQty) {
         }
     };
 })();
-<div id="first-tos-overlay">
-  <div class="first-tos-box">
-    <h2 style="color: #dc2626; margin-top: 0; border-bottom: 1px dashed #dc2626; padding-bottom: 10px;">⚠ VX-24 통신망 이용 약관</h2>
-    
-    <div class="first-tos-content">
-      본 생존자 네트워크(이하 'VX-24') 통신망에 접속하기 전, 아래 사항을 반드시 숙지하십시오.<br><br>
-      <strong>제1조 (목적)</strong><br>본 약관은 ShelterProtocol 운영자가 제공하는 사이트의 이용과 관련하여, 운영진과 이용자 간의 권리, 의무 및 책임 사항, 기타 필요한 사항을 규정함을 목적으로 합니다.<br><br>
-      <strong>제2조 (용어의 정의)</strong><br>1. 서비스란 단말기(PC, 휴대형 단말기 등)와 상관없이 이용자가 이용할 수 있는 ShelterProtocol 관련 모든 텍스트 기반 게임 및 커뮤니티 서비스를 의미합니다.<br>2. 이용자란 본 서비스에 접속하여 본 약관에 따라 운영진이 제공하는 서비스를 받는 회원 및 비회원을 말합니다.<br>3. 회원이란 서비스에 가입하여 계정을 생성하고, 지속적으로 서비스를 이용할 수 있는 자를 말합니다.<br>4. 캐릭터란 회원이 서비스 내의 세계관(VX-24 발병 이후의 세계 등)에서 플레이하기 위해 생성하고 조종하는 가상의 데이터를 말합니다.<br><br>
-      <strong>제3조 (약관의 명시와 개정)</strong><br>운영진은 본 약관의 내용을 이용자가 쉽게 알 수 있도록 서비스 초기 화면이나 공지사항 게시판 등에 게시합니다.<br>운영진은 서비스 운영상 필요하다고 판단되는 경우 관련 법령을 위배하지 않는 범위 내에서 본 약관을 개정할 수 있습니다.<br><br>
-      <strong>제4조 (서비스의 제공 및 변경)</strong><br>서비스는 연중무휴, 1일 24시간 제공함을 원칙으로 합니다.<br>운영진은 서버 점검, 네트워크 증설 및 교체, 치명적인 버그(시스템 오류) 발생 등 운영상 필요한 경우 서비스의 전부 또는 일부를 일시적으로 중단할 수 있습니다.<br>텍스트 게임의 특성상 세계관 설정(VX-24 바이러스 설정, 감염 경로, 통신망 등), 시스템, 스토리 진행 방식은 기획 의도에 따라 변경될 수 있으며, 이는 사전 공지 후 적용됩니다.<br><br>
-      <strong>제5조 (이용자의 의무 및 제재 사항)</strong><br>이용자는 다음 각 호의 행위를 하여서는 안 되며, 적발 시 운영진은 경고, 캐릭터 삭제, 계정 이용 정지, 영구 추방 등의 제재를 가할 수 있습니다.<br>- 회원 가입 또는 정보 변경 시 허위 내용을 등록하는 행위<br>- 타인의 계정을 도용하거나 부정하게 사용하는 행위<br>- 서비스 내 시스템 버그를 악용하거나 비정상적인 방법으로 트래픽을 유발하여 서버에 부담을 주는 행위(매크로, 도배 등)<br>- 세계관에 심각하게 위배되는 텍스트 작성이나 타인의 플레이를 고의로 방해하는 행위 (메타 게이밍, 과도한 트롤링 등)<br>- 타인에게 불쾌감을 주는 욕설, 혐오 발언, 음란물 게재, 현실의 정치/종교적 분쟁을 조장하는 행위<br>- 서비스의 운영진을 사칭하거나 적대적인 행위를 하는 경우<br><br>
-      <strong>제6조 (저작권의 귀속 및 이용제한)</strong><br>서비스 내에서 운영진이 작성한 세계관(VX-24 설정, 142.7MHz 등 고유 설정), 텍스트, 시스템 디자인, 스토리 등 모든 저작물에 대한 저작권 및 기타 지적재산권은 ShelterProtocol 운영진에게 귀속됩니다.<br>이용자는 서비스를 이용함으로써 얻은 정보 중 운영진에게 지적재산권이 귀속된 정보를 운영진의 사전 승낙 없이 복제, 송신, 출판, 배포, 방송 기타 방법에 의하여 영리 또는 비영리 목적으로 이용하거나 제3자에게 이용하게 하여서는 안 됩니다.<br>이용자가 서비스 내에 작성한 캐릭터 설정, 롤플레잉 텍스트 등의 2차적 게시물에 대한 책임은 해당 작성자에게 있으며, 운영진은 게임 운영 및 서사 차용에 이용할 수 있습니다.<br><br>
-      <strong>제7조 (면책조항)</strong><br>운영진은 천재지변, 서버 호스팅 업체의 장애, 기간통신사업자의 회선 장애 등 불가항력으로 인하여 서비스를 제공할 수 없는 경우에는 서비스 제공에 관한 책임이 면제됩니다.<br>운영진은 이용자의 귀책사유로 인한 서비스 이용의 장애에 대하여는 책임을 지지 않습니다.<br>텍스트 기반 게임 특성상 이용자 간에 발생한 분쟁(캐릭터 간의 갈등이 아닌 현실 이용자 간의 갈등)에 대하여 운영진은 개입할 의무가 없으며 이로 인한 손해를 배상할 책임이 없습니다.
-    </div>
 
-    <label class="first-tos-label">
-      <input type="checkbox" id="tos-agree-check" style="width:20px; height:20px; accent-color:#dc2626;">
-      <span>[ 네 ] 위 이용 약관에 동의하십니까?</span>
-    </label>
-
-    <div class="first-tos-btns">
-      <button class="btn-tos-yes" onclick="submitFirstToS()">확인 및 접속</button>
-      <button class="btn-tos-no" onclick="declineFirstToS()">아니오</button>
-    </div>
-  </div>
-</div>
-
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    const isAgreed = localStorage.getItem('vx24_tos_agreed');
-    if (!isAgreed) {
-      document.getElementById('first-tos-overlay').style.display = 'flex';
-    }
-  });
-
-  function submitFirstToS() {
-    const isChecked = document.getElementById('tos-agree-check').checked;
-    if (!isChecked) {
-      alert('약관에 동의(체크)하셔야 통신망 이용이 가능합니다.');
-      return;
-    }
-    localStorage.setItem('vx24_tos_agreed', 'true');
-    document.getElementById('first-tos-overlay').style.display = 'none';
-  }
-
-  function declineFirstToS() {
-    alert('약관에 동의하지 않을 경우 이용이 불가능합니다.');
-    document.getElementById('tos-agree-check').checked = false;
-  }
+  
+  
 </script>
 </body>
 </html>
