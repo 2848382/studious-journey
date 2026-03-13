@@ -224,7 +224,6 @@ button{cursor:pointer;font-family:var(--f)}a{color:var(--acl);text-decoration:no
 .kit-show{display:none;margin-top:10px}.kit-show.show{display:block;animation:fu .4s}
 .kit-c{background:var(--bg2);border:1px solid rgba(34,197,94,.3);padding:14px;text-align:center}
 .kit-i{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;margin-top:8px}
-.kit-it{background:var(--bgi);border:1px solid var(--bd);padding:5px 10px;font-size:11px;color:var(--tx);letter-spacing:var(--ls)}
 .kit-q{font-family:var(--m);color:var(--ylw);margin-left:3px}
 
 /* QUIZ */
@@ -1893,12 +1892,15 @@ body { background: #13131a; }
 .sup-ok { font-family:var(--m); font-size:12px; color:var(--grn); letter-spacing:.08em; }
 .kit-it {
   display:flex; align-items:center; gap:8px;
-  padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.05);
+  padding:6px 10px;
+  background:var(--bgi); border:1px solid var(--bd);
   font-size:12px; color:var(--tx);
+  min-width:0; overflow:hidden;
+  box-sizing:border-box;
 }
-.kit-it-icon { font-size:18px; }
-.kit-q { font-family:var(--m); font-size:10px; color:var(--ylw); margin-left:auto; }
-.kit-show.show { display:block; animation:fu .3s; }
+.kit-it-icon { font-size:18px; flex-shrink:0; }
+.kit-it-name { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.kit-q { font-family:var(--m); font-size:10px; color:var(--ylw); flex-shrink:0; margin-left:auto; }
 
 /* ── loot particle ────────────────────────────────────────────── */
 .loot-particle {
@@ -4608,7 +4610,7 @@ function showSupplyResult(items, isExtra){
        if(window._supTimerInterval) clearInterval(window._supTimerInterval);
     window._supTimerInterval = setInterval(()=>{const e=$('stmr');if(e)e.textContent=getTimeLeft()},1000);
   }
-  $('kit-items').innerHTML=items.map(i=>`<div class="kit-it"><span class="kit-it-icon">${i.i}</span> ${i.n} <span class="kit-q">×${i.q}</span></div>`).join('');
+  $('kit-items').innerHTML=items.map(i=>`<div class="kit-it"><span class="kit-it-icon">${i.i}</span><span class="kit-it-name">${i.n}</span><span class="kit-q">×${i.q}</span></div>`).join('');
   $('kit-res').classList.add('show');
   spawnLootParticles();
 }
