@@ -7237,6 +7237,7 @@ window.addEventListener('load', function() {
         }
     };
 });
+</script>
 
 <script>
 const VAPID_PUBLIC_KEY = 'BLZ0ykXaxaWKjjQ-FswPuxDL3ZTyPe-3tni7vkhUoDuvOeqPVFlNQFV5MEmZCc4xWk4KsnNkRF-H85dIppRTU0g';
