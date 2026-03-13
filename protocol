@@ -7293,7 +7293,7 @@ window.addEventListener('load', function() {
         }
     };
 });
-// 🚀 VAPID 키 변환 번역기 (이게 없어서 DB 저장이 안 됐음!)
+// 🚀 VAPID 키 변환 번역기
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
   const base64 = (base64String + padding)
@@ -7306,21 +7306,29 @@ function urlBase64ToUint8Array(base64String) {
   }
   return outputArray;
 }
-  // 📡 서비스 워커(택배 기사)가 보내는 무전 수신 대기
+
+// 📡 서비스 워커(택배 기사)가 보내는 무전 수신 대기
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.addEventListener('message', event => {
-    // 마스터가 보낸 푸시 알림 신호라면?
+    // 1. 마스터가 보낸 푸시 알림 신호가 도착했는지 확인
     if (event.data && event.data.type === 'MASTER_PUSH_RECEIVED') {
-      const pushData = event.data.payload;
+      const p = event.data.payload;
       
-      // 🚀 마스터의 데이터를 게임 속 폰이 알아먹게 이름표 바꿔치기!
+      console.log("📨 마스터 푸시 수신:", p);
+
+      // 2. [가장 중요] 예약 발송 메시지 양식과 똑같이 이름표를 만듭니다.
+      // 예약 발송이 note.from_call과 note.content를 쓰기 때문에 똑같이 맞춰줍니다.
       const fakeNote = {
-        from_call: pushData.title,  // 푸시 제목(예: "🚨 재난문자")을 발신자로!
-        content: pushData.body      // 푸시 내용을 쪽지 내용으로!
+        from_call: p.title.replace('🚨 재난문자: ', '') || '작전사령부', 
+        content: p.body || '',
+        body: p.body || '' // 혹시 몰라 body 이름표도 유지
       };
       
-      // 게임 속 폰 진동 & UI 업데이트 발동!
-      triggerPhoneNotification(fakeNote);
+      // 3. 예약 발송이 뜰 때 실행되는 그 함수를 강제로 실행!
+      if (typeof triggerPhoneNotification === 'function') {
+        console.log("📱 게임 UI 내부 핸드폰 울리는 중...");
+        triggerPhoneNotification(fakeNote);
+      }
     }
   });
 }
