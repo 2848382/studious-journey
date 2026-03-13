@@ -5649,8 +5649,8 @@ function scheduleDisasterSms(){
     const firstDelay=30000+Math.random()*60000;   setTimeout(function fire(){     
       // 아직 안 쓴 것 중에서 랜덤 선택     
       const remaining=DISASTER_MSGS.filter((_,i)=>!dsmsUsed.has(i));     if(remaining.length===0){dsmsUsed.clear();}     const pool=DISASTER_MSGS.filter((_,i)=>!dsmsUsed.has(i));     const idx=DISASTER_MSGS.indexOf(pool[Math.floor(Math.random()*pool.length)]);     dsmsUsed.add(idx);     showDsms(DISASTER_MSGS[idx]);     
-      // 다음 발송: 2~6분 랜덤     
-      const nextDelay=120000+Math.random()*240000;     setTimeout(fire,nextDelay);   },firstDelay); }  
+      // 다음 발송: 50~70분 랜덤 (약 1시간에 1개)     
+      const nextDelay=3000000+Math.random()*1200000;     setTimeout(fire,nextDelay);   },firstDelay); }  
   // 재난문자 시작 (로그인 후에도 동작) 
   scheduleDisasterSms();
 
@@ -7324,8 +7324,16 @@ if ('serviceWorker' in navigator) {
         body: p.body || '' // 혹시 몰라 body 이름표도 유지
       };
       
-      // 3. 예약 발송이 뜰 때 실행되는 그 함수를 강제로 실행!
-      if (typeof triggerPhoneNotification === 'function') {
+      // 3. 재난문자 형식이면 showDsms()로 핸드폰 내부 화면까지 표시
+      // 일반 전체 메시지도 예약 메시지와 동일하게 핸드폰 UI 내부로 들어오게 처리
+      if (typeof showDsms === 'function') {
+        console.log("📱 핸드폰 내부 화면 표시 중...");
+        showDsms({
+          title: p.title || '⚠ 긴급 알림',
+          body: p.body || ''
+        });
+      } else if (typeof triggerPhoneNotification === 'function') {
+        // showDsms가 아직 로드되지 않은 경우 fallback
         console.log("📱 게임 UI 내부 핸드폰 울리는 중...");
         triggerPhoneNotification(fakeNote);
       }
