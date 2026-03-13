@@ -7329,8 +7329,7 @@ document.addEventListener('DOMContentLoaded', () => {
     subscribePush().catch(console.warn);
   }
 });
+
 </script>  
-  
-</script>
 </body>
 </html>
