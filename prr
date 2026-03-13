@@ -212,9 +212,6 @@ button{cursor:pointer;font-family:var(--f)}a{color:var(--acl);text-decoration:no
 .drbtn{width:100%;padding:7px;background:var(--ac);color:#fff;border:none;font-size:12px;font-weight:600}
 
 /* SUPPLY */
-.sup-hero{text-align:center;padding:16px;background:var(--bg2);border:1px solid var(--bd);margin-bottom:10px}
-.sup-ht{font-family:var(--o);font-size:14px;font-weight:900;color:var(--w);margin-bottom:3px}
-.sup-hs{font-size:11px;color:var(--txd);margin-bottom:8px}
 .sup-hero{background:var(--bg2);border:1px solid var(--bd);padding:18px 16px;margin-bottom:10px;text-align:center}
 .sup-ht{font-family:var(--m);font-size:11px;color:var(--txf);letter-spacing:var(--lsm);margin-bottom:4px}
 .sup-hs{font-size:12px;color:var(--txd);letter-spacing:var(--ls);margin-bottom:12px}
@@ -2249,7 +2246,21 @@ body { background: #13131a; }
 
 <!-- TABS -->
 <div class="tabs">
-<div class="tab on" onclick="go('lore')">세계관</div><div class="tab" onclick="go('map')">지도</div><div class="tab" onclick="go('board')">게시판</div><div class="tab" onclick="go('dice')">주사위</div><div class="tab" onclick="go('supply')">보급품</div><div class="tab" onclick="go('quiz')">감염진단</div><div class="tab" onclick="go('guide')">가이드</div><div class="tab" onclick="go('pass')">🪪 통행증</div><div class="tab" onclick="go('mission')">미션</div><div class="tab" onclick="go('capsule')">타임캡슐</div><div class="tab" onclick="go('radio')">📻 라디오</div><div class="tab" onclick="go('profile')">프로필</div><div class="tab" onclick="go('trade')">⚔ 거래소</div><div class="tab" onclick="go('report')">🦠 신고</div><div class="tab" id="master-tab" style="display:none;color:var(--pur)" onclick="go('master')">⚙</div>
+<div class="tab on" onclick="go('lore', event)">세계관</div>
+<div class="tab" onclick="go('map')">지도</div>
+<div class="tab" onclick="go('board')">게시판</div>
+<div class="tab" onclick="go('dice')">주사위</div>
+<div class="tab" onclick="go('supply')">보급품</div>
+<div class="tab" onclick="go('quiz')">감염진단</div>
+<div class="tab" onclick="go('guide')">가이드</div>
+<div class="tab" onclick="go('pass')">🪪 통행증</div>
+<div class="tab" onclick="go('mission')">미션</div>
+<div class="tab" onclick="go('capsule')">타임캡슐</div>
+<div class="tab" onclick="go('radio')">📻 라디오</div>
+<div class="tab" onclick="go('profile')">프로필</div>
+<div class="tab" onclick="go('trade')">⚔ 거래소</div>
+<div class="tab" onclick="go('report')">🦠 신고</div>
+<div class="tab" id="master-tab" style="display:none;color:var(--pur)" onclick="go('master')">⚙</div>
 </div>
 
 <!-- PAGES -->
@@ -3749,12 +3760,15 @@ function updDD(){const h=Math.floor((Date.now()-new Date(2025,0,1))/36e5);$('dda
 // ============================================================
 // PAGES
 // ============================================================
-function go(p){
+function go(p, evt){
   document.querySelectorAll('.pg').forEach(x=>x.classList.remove('on'));
-  if(p==='hidden'&&$('pg-hidden').style.display==='none')return;
-  $('pg-'+p).classList.add('on');
+  const pgHidden=$('pg-hidden');
+  if(p==='hidden'&&pgHidden&&pgHidden.style.display==='none')return;
+  const target=$('pg-'+p);
+  if(!target)return;
+  target.classList.add('on');
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
-  if(event&&event.target)event.target.classList.add('on');
+  if(evt&&evt.target)evt.target.classList.add('on');
   if(p==='board'){buildSide();renderBoard()}
   if(p==='profile')renderProf();
   if(p==='supply'){initSup();loadTabNotice('supply');}
@@ -4525,7 +4539,8 @@ async function initSup(){
   if(!claimed&&localStorage.getItem('vx24_sd')===today)claimed=true;
   if(claimed){
     el.innerHTML=`<div class="sup-ok">✓ 수령 완료</div><div style="font-family:var(--m);font-size:10px;color:var(--txd);margin-top:3px">다음: <span id="stmr">${getTimeLeft()}</span></div>`;
-    setInterval(()=>{const e=$('stmr');if(e)e.textContent=getTimeLeft()},1000);
+    if(window._supTimerInterval) clearInterval(window._supTimerInterval);
+window._supTimerInterval = setInterval(()=>{const e=$('stmr');if(e)e.textContent=getTimeLeft()},1000);
     renderSupplyItems(today);
   }else{
     el.innerHTML='<button class="sup-btn" onclick="claimSup()">▶ 보급품 수령</button>';
@@ -4590,7 +4605,8 @@ function showSupplyResult(items, isExtra){
   const supActEl=$('sup-act');
   if(supActEl){
     supActEl.innerHTML=`<div class="sup-ok">${isExtra?'🎫 추가 수령':'✓ 수령'} 완료</div><div style="font-family:var(--m);font-size:10px;color:var(--txd);margin-top:3px">다음: <span id="stmr">${getTimeLeft()}</span></div>`;
-    setInterval(()=>{const e=$('stmr');if(e)e.textContent=getTimeLeft()},1000);
+       if(window._supTimerInterval) clearInterval(window._supTimerInterval);
+    window._supTimerInterval = setInterval(()=>{const e=$('stmr');if(e)e.textContent=getTimeLeft()},1000);
   }
   $('kit-items').innerHTML=items.map(i=>`<div class="kit-it"><span class="kit-it-icon">${i.i}</span> ${i.n} <span class="kit-q">×${i.q}</span></div>`).join('');
   $('kit-res').classList.add('show');
@@ -4637,7 +4653,14 @@ function addToInv(n,i,q){
   const today=getTodayStr();
   const ex=inv.find(x=>x.n===n);
   const isFood=PERISHABLE.includes(n); // 유통기한은 식품만
-  if(ex){ex.q+=q;}
+   if(ex){
+    ex.q+=q;
+    if(isFood){
+      const tom=new Date();
+      tom.setDate(tom.getDate()+1);
+      ex.exp=tom.getFullYear()+'-'+String(tom.getMonth()+1).padStart(2,'0')+'-'+String(tom.getDate()).padStart(2,'0');
+    }
+  }
   else{
     const item={n,i,q};
     if(isFood){const tom=new Date();tom.setDate(tom.getDate()+1);item.exp=tom.getFullYear()+'-'+String(tom.getMonth()+1).padStart(2,'0')+'-'+String(tom.getDate()).padStart(2,'0');} // 수령 다음날 만료
@@ -5392,7 +5415,7 @@ function switchPhoneTab(tab){
         }
       }catch(e){}
     }
-  } loadEC();  
+  }
 function renderEmergencyContacts(){
   const listEl=$('phone-contacts-list');
   const setupEl=$('phone-ec-setup');
@@ -6060,9 +6083,6 @@ async function refreshInfectionCount() {
     console.error("감염자 수 갱신 에러:", e); // 조용히 숨지 않고 콘솔에 이유를 남김
   }
 }
-
-// 쪽지/재난문자 수신 시 핸드폰 진동+소리 설정
-const _origLoadNotes = typeof loadNotes === 'function' ? loadNotes : null;
 
 // ============================================================
 // 🚨 AUTO EMERGENCY (재난 경보 자동 팝업)
@@ -6844,15 +6864,6 @@ handleRealtimeNote = function(note) {
     showBrowserNotif('📩 쪽지 도착', note.from_call + ' — ' + (note.body||'').slice(0,40));
   }
 };
-
-// 재난문자 팝업 시 브라우저 알림도 동시 발송
-const _origShowDsms = typeof showDsms === 'function' ? showDsms : null;
-if (_origShowDsms) {
-  showDsms = function(data) {
-    _origShowDsms(data);
-    showBrowserNotif('🚨 재난문자', (data.title||'') + '\n' + (data.body||'').slice(0,60));
-  };
-}
 </script>
 
 <script>
@@ -7052,6 +7063,8 @@ const _prevShowDsms2 = typeof showDsms === 'function' ? showDsms : null;
 if (_prevShowDsms2) {
   showDsms = function(data) {
     _prevShowDsms2(data);
+    // 브라우저 알림 + 전체 푸시를 여기서만 처리 (중복 제거)
+    showBrowserNotif('🚨 재난문자', (data.title||'') + '\n' + (data.body||'').slice(0,60));
     broadcastPush('🚨 재난문자: ' + (data.title||''), (data.body||'').slice(0,80));
   };
 }
@@ -7148,7 +7161,7 @@ window.openGiftUI = async function(itemName, itemIcon, myQty) {
   }
 };
 
-(function() {
+window.addEventListener('load', function() {
     if (typeof window.sbReq === 'function' && !window._sbReqHooked) {
         window._sbReqHooked = true;
         var _originalSbReq = window.sbReq;
@@ -7221,7 +7234,7 @@ window.openGiftUI = async function(itemName, itemIcon, myQty) {
             alert('수령 중 오류가 발생했습니다.'); 
         }
     };
-})();
+});
 
   
   
