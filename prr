@@ -2247,20 +2247,20 @@ body { background: #13131a; }
 <!-- TABS -->
 <div class="tabs">
 <div class="tab on" onclick="go('lore', event)">세계관</div>
-<div class="tab" onclick="go('map')">지도</div>
-<div class="tab" onclick="go('board')">게시판</div>
-<div class="tab" onclick="go('dice')">주사위</div>
-<div class="tab" onclick="go('supply')">보급품</div>
-<div class="tab" onclick="go('quiz')">감염진단</div>
-<div class="tab" onclick="go('guide')">가이드</div>
-<div class="tab" onclick="go('pass')">🪪 통행증</div>
-<div class="tab" onclick="go('mission')">미션</div>
-<div class="tab" onclick="go('capsule')">타임캡슐</div>
-<div class="tab" onclick="go('radio')">📻 라디오</div>
-<div class="tab" onclick="go('profile')">프로필</div>
-<div class="tab" onclick="go('trade')">⚔ 거래소</div>
-<div class="tab" onclick="go('report')">🦠 신고</div>
-<div class="tab" id="master-tab" style="display:none;color:var(--pur)" onclick="go('master')">⚙</div>
+<div class="tab" onclick="go('map', event)">지도</div>
+<div class="tab" onclick="go('board', event)">게시판</div>
+<div class="tab" onclick="go('dice', event)">주사위</div>
+<div class="tab" onclick="go('supply', event)">보급품</div>
+<div class="tab" onclick="go('quiz', event)">감염진단</div>
+<div class="tab" onclick="go('guide', event)">가이드</div>
+<div class="tab" onclick="go('pass', event)">🪪 통행증</div>
+<div class="tab" onclick="go('mission', event)">미션</div>
+<div class="tab" onclick="go('capsule', event)">타임캡슐</div>
+<div class="tab" onclick="go('radio', event)">📻 라디오</div>
+<div class="tab" onclick="go('profile', event)">프로필</div>
+<div class="tab" onclick="go('trade', event)">⚔ 거래소</div>
+<div class="tab" onclick="go('report', event)">🦠 신고</div>
+<div class="tab" id="master-tab" style="display:none;color:var(--pur)" onclick="go('master', event)">⚙</div>
 </div>
 
 <!-- PAGES -->
